@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<head>
+  <title>Airline Cancellations</title>
+  <meta charset="utf-8">
+  <style>
+
+    .header-container {
+      border-bottom: solid;
+      font-family: century gothic, sans-serif;
+    }
+
+    .land {
+      fill: #ddd;
+    }
+
+    .border {
+      fill: none;
+      stroke: #fff;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    .county-boundary {
+      fill: none;
+      stroke: #fff;
+      stroke-width: .5px;
+    }
+
+    .state-boundary {
+      fill: none;
+      stroke: #fff;
+    }
+
+    circle:hover {
+      opacity: 0.9;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+
+    .line {
+      fill: none;
+      stroke: steelblue;
+      stroke-width: 1.5px;
+    }
+
+    .brush .extent {
+      stroke: #000;
+      fill-opacity: .125;
+      shape-rendering: crispEdges;
+    }
+
+    div {
+      text-align: center;
+    }
+
+    #start {
+      color: steelblue;
+    }
+
+    .play-btns {
+      -moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
+      -webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
+      box-shadow:inset 0px 1px 0px 0px #ffffff;
+      background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #f9f9f9), color-stop(1, #e9e9e9));
+      background:-moz-linear-gradient(top, #f9f9f9 5%, #e9e9e9 100%);
+      background:-webkit-linear-gradient(top, #f9f9f9 5%, #e9e9e9 100%);
+      background:-o-linear-gradient(top, #f9f9f9 5%, #e9e9e9 100%);
+      background:-ms-linear-gradient(top, #f9f9f9 5%, #e9e9e9 100%);
+      background:linear-gradient(to bottom, #f9f9f9 5%, #e9e9e9 100%);
+      filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#f9f9f9', endColorstr='#e9e9e9',GradientType=0);
+      background-color:#f9f9f9;
+      -moz-border-radius:6px;
+      -webkit-border-radius:6px;
+      border-radius:6px;
+      border:1px solid #dcdcdc;
+      display:inline-block;
+      cursor:pointer;
+      font-family:arial;
+      font-size:15px;
+      font-weight:bold;
+      padding:6px 24px;
+      text-decoration:none;
+      text-shadow:0px 1px 0px #ffffff;
+    }
+    .play-btns:hover {
+      background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #e9e9e9), color-stop(1, #f9f9f9));
+      background:-moz-linear-gradient(top, #e9e9e9 5%, #f9f9f9 100%);
+      background:-webkit-linear-gradient(top, #e9e9e9 5%, #f9f9f9 100%);
+      background:-o-linear-gradient(top, #e9e9e9 5%, #f9f9f9 100%);
+      background:-ms-linear-gradient(top, #e9e9e9 5%, #f9f9f9 100%);
+      background:linear-gradient(to bottom, #e9e9e9 5%, #f9f9f9 100%);
+      filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#e9e9e9', endColorstr='#f9f9f9',GradientType=0);
+      background-color:#e9e9e9;
+    }
+    .play-btns:active {
+      position:relative;
+      top:1px;
+    }
+
+    a {
+      color: black;
+      text-decoration: underline;
+    }
+
+    a:hover {
+      color: steelblue;
+      text-decoration: none;
+    }
+
+    img {
+      height: 30px;
+      -webkit-filter: grayscale(1);
+      vertical-align: middle;
+      border: 0;
+    }
+
+    img:hover {
+      -webkit-filter: grayscale(0);
+    }
+
+    .d3-tip {
+      line-height: 1;
+      font-weight: bold;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    /* Creates a small triangle extender for the tooltip */
+    .d3-tip:after {
+      box-sizing: border-box;
+      display: inline;
+      font-size: 10px;
+      width: 100%;
+      line-height: 1;
+      color: rgba(0, 0, 0, 0.8);
+      position: absolute;
+      pointer-events: none;
+    }
+
+    /* Northward tooltips */
+    .d3-tip.n:after {
+      content: "\25BC";
+      margin: -1px 0 0 0;
+      top: 100%;
+      left: 0;
+      text-align: center;
+    }
+
+  </style>
+  <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://d3js.org/topojson.v1.min.js"></script>
+  <script src="js/d3-tip.js"></script>
+</head>
+<body>
+  <div class="header-container">
+    <h2>One Year of US Flight Cancellations: Sep 2013 - Aug 2014</h2>
+  </div>
+  <div class="map-container"></div>
+  <div class="button-container">
+    <button class="play-btns" id="back"><i class="fa fa-step-backward"></i></button>
+    <button class="play-btns" id="start"><i class="fa fa-play"></i></button>
+    <button class="play-btns" id="stop"><i class="fa fa-stop"></i></button>
+    <button class="play-btns" id="next"><i class="fa fa-step-forward"></i></button>
+  </div>
+  <div class="line-container"></div>
+    <p><a href="http://www.twitter.com/mvanger">Mike Vanger</a> | <a href="http://www.github.com"><img src="images/github-icon.png"></a> | Data comes from <a href="http://www.transtats.bts.gov/">http://www.transtats.bts.gov/</a></p>
+  <script>
+/*
+  var width = 960,
+      height = 600;
+
+  var path = d3.geo.path()
+      .projection(null);
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width)
+      .attr("height", height);
+
+  d3.json("data/us.json", function(error, us) {
+    if (error) return console.error(error);
+
+    svg.append("path")
+        .datum(topojson.feature(us, us.objects.nation))
+        .attr("class", "land")
+        .attr("d", path);
+
+    svg.append("path")
+        .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+        .attr("class", "border border--state")
+        .attr("d", path);
+  });
+*/
+</script>
+
+
+<script>
+
+var width = 960,
+    height = 450;
+
+var projection = d3.geo.albersUsa()
+    .scale(900)
+    .translate([width / 2, height / 2]);
+
+var path = d3.geo.path()
+    .projection(projection);
+
+var svg = d3.select(".map-container").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+d3.json("data/us.json", function(error, us) {
+  svg.insert("path", ".bubble")
+      .datum(topojson.feature(us, us.objects.land))
+      .attr("class", "land")
+      .attr("d", path);
+
+  svg.insert("path", ".bubble")
+      .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+      .attr("class", "state-boundary")
+      .attr("d", path);
+});
+
+d3.select(self.frameElement).style("height", height + "px");
+
+var dateNameFormat = d3.time.format("%B %-d, %Y")
+
+function dateFromDay(day){
+  if (day >= 244) {
+    var year = 2013;
+  } else {
+    var year = 2014;
+  }
+  var date = new Date(year, 0); // initialize a date in `year-01-01`
+  return new Date(date.setDate(day)); // add the number of days
+}
+
+var date = 244; // Sep 1
+var date_string = d3.time.format("%y-%-m-%-d");
+
+d3.json("data/year.json", function(error, airports) {
+  var tip = d3.tip().attr('class', 'd3-tip').html(function(d) {
+    return dateNameFormat(dateFromDay(date)) + "</br>" + d.origin + " - " + d.city + ", " + d.state + "</br>" + d.cancels + " Cancellations";
+  });
+  svg.call(tip);
+
+  var radius = d3.scale.sqrt()
+    .domain([0, 998])
+    .range([0, 60]);
+
+  svg.append("g")
+      .attr("class", "bubble")
+    .selectAll("circle")
+      .data(airports[date_string(dateFromDay(date))])
+    .enter().append("circle")
+      .attr("cx", function(d) {
+        if (projection([d.long, d.lat])) {
+          return projection([d.long, d.lat])[0];
+        } else {
+          return undefined;
+        }
+      })
+      .attr("cy", function(d) {
+        if (projection([d.long, d.lat])) {
+          return projection([d.long, d.lat])[1];
+        } else {
+          return undefined;
+        }
+      })
+      .attr("r", function(d) { return radius(d.cancels); })
+      .attr("fill", "steelblue")
+      .attr("stroke", "white")
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.7)
+      .on("mouseover", tip.show)
+      .on("mouseout", tip.hide);
+
+  var key = function(d) { return d.origin; };
+
+  function transitionBubbles() {
+    var circles = svg.selectAll("circle")
+      .data(airports[date_string(dateFromDay(date))], key)
+
+    circles.transition()
+      .duration(100)
+      .attr("r", function(d) { return radius(d.cancels); })
+
+    circles
+      .enter().append("circle")
+        .attr("cx", function(d) {
+          if (projection([d.long, d.lat])) {
+            return projection([d.long, d.lat])[0];
+          } else {
+            return undefined;
+          }
+        })
+        .attr("cy", function(d) {
+          if (projection([d.long, d.lat])) {
+            return projection([d.long, d.lat])[1];
+          } else {
+            return undefined;
+          }
+        })
+        .attr("r", function(d) { return radius(d.cancels); })
+        .attr("fill", "steelblue")
+        .attr("stroke", "white")
+        .attr("stroke-width", 1)
+        .attr("opacity", 0.7)
+        .on("mouseover", tip.show)
+        .on("mouseout", tip.hide);
+
+    circles.exit().remove();
+
+    d3.select(".slider")
+      .transition()
+      .duration(100)
+      .attr("x", x(dateFromDay(date)) - 1.5);
+  }
+
+  var is_animating = true;
+  var date_cycle = setInterval(function() {
+    if (date < 365) {
+      date++;
+    } else {
+      date = 1;
+    }
+    transitionBubbles();
+  }, 100);
+
+  d3.select("#back").on("click", function() {
+    if (!is_animating) {
+      if (date > 1) {
+        date--;
+      } else {
+        date = 1;
+      }
+      transitionBubbles();
+    }
+  });
+
+  d3.select("#start").on("click", function() {
+    if (!is_animating) {
+      date_cycle = setInterval(function() {
+        if (date < 365) {
+          date++;
+        } else {
+          date = 1;
+        }
+        transitionBubbles();
+      }, 100);
+      is_animating = true;
+      d3.select("#start").style("color", "steelblue");
+      d3.select("#stop").style("color", "black");
+    }
+  });
+
+  d3.select("#stop").on("click", function() {
+    if (is_animating) {
+      is_animating = false;
+      clearInterval(date_cycle);
+      d3.select("#start").style("color", "black");
+      d3.select("#stop").style("color", "steelblue");
+    }
+  });
+
+  d3.select("#next").on("click", function() {
+    if (!is_animating) {
+      if (date < 365) {
+        date++;
+      } else {
+        date = 1;
+      }
+      transitionBubbles();
+    }
+  });
+
+  var line_margin = {top: 20, right: 20, bottom: 30, left: 50},
+  line_width = 960 - line_margin.left - line_margin.right,
+  line_height = 250 - line_margin.top - line_margin.bottom;
+
+  var line_date_format = d3.time.format("%m-%d-%Y")
+
+  function lineDateFromDay(month, day){
+    if (month >= 9) {
+      var year = 2013;
+    } else {
+      var year = 2014;
+    }
+    var date = new Date(year, month - 1, day); // initialize a date in `year-01-01`
+    return line_date_format(date); // add the number of days
+  }
+
+  var parseDate = d3.time.format("%m-%d-%Y").parse
+
+  var x = d3.time.scale()
+    .range([0, line_width])
+
+  var y = d3.scale.linear()
+    .range([line_height, 0]);
+
+  var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat(d3.time.format("%b %-d"));
+
+  var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+  var line = d3.svg.line()
+    .x(function(d) { return x(d.date); })
+    .y(function(d) { return y(d.cancels); });
+
+  var line_svg = d3.select(".line-container").append("svg")
+    .attr("width", line_width + line_margin.left + line_margin.right)
+    .attr("height", line_height + line_margin.top + line_margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + line_margin.left + "," + line_margin.top + ")");
+
+  d3.csv("data/total_cancels.csv", function(error, cancels) {
+    // debugger
+    cancels.forEach(function(d) {
+      d.date = parseDate(lineDateFromDay(parseInt(d.MONTH), parseInt(d.DAY_OF_MONTH)));
+      d.cancels = parseInt(d.cancels);
+    });
+
+    x.domain(d3.extent(cancels, function(d) { return d.date; }));
+    y.domain(d3.extent(cancels, function(d) { return d.cancels; }));
+
+    line_svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + line_height + ")")
+      .call(xAxis);
+
+    line_svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Total US Cancellations");
+
+    line_svg.append("path")
+      .datum(cancels)
+      .attr("class", "line")
+      .attr("d", line);
+
+    /*
+    var brush = d3.svg.brush()
+      .x(x)
+      .extent([0, 0])
+      .on("brushend", brushended);
+
+    var gBrush = line_svg.append("g")
+      .attr("class", "brush")
+      .call(brush)
+      .call(brush.event);
+
+    gBrush.selectAll("rect")
+      .attr("height", line_height)
+      .attr("width", 3);
+
+    function brushended() {
+      if (!d3.event.sourceEvent) return; // only transition after input
+      var extent0 = brush.extent(),
+          extent1 = extent0.map(d3.time.day.round);
+
+      // if empty when rounded, use floor & ceil instead
+      if (extent1[0] >= extent1[1]) {
+        extent1[0] = d3.time.day.floor(extent0[0]);
+        extent1[1] = d3.time.day.ceil(extent0[1]);
+      }
+
+      d3.select(this).transition()
+          .call(brush.extent(extent1))
+          .call(brush.event);
+    }
+    */
+// debugger
+    line_svg.append("rect")
+      .attr("class", "slider")
+      .attr("x", x(dateFromDay(date)) - 1.5)
+      .attr("y", 0)
+      .attr("width", 3)
+      .attr("height", line_height)
+      .attr("fill", "black");
+
+  });
+})
+
+
+</script>
+</body>
+</html>
